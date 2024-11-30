@@ -31,3 +31,5 @@
 *.out
 *.app
 lesson1/build
+lesson1/.idea
+lesson1/cmake-build-debug
