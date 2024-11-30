@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -14,9 +15,111 @@
 #define VK_EXT_DEBUG_REPORT_EXTENSION_NAME "VK_EXT_debug_report"
 #endif
 
+#define VK_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
+
 #ifdef __APPLE__
 #define VK_INST_EXT_PORTABILITY "VK_KHR_portability_enumeration"
+#define VK_DEV_EXT_PORTABILITY "KHR_portability_subset"
 #endif
+
+VkDebugUtilsMessengerEXT debugMessenger;
+
+const char *toStringMessageSeverity(VkDebugUtilsMessageSeverityFlagBitsEXT s) {
+    switch (s) {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            return "VERBOSE";
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            return "ERROR";
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            return "WARNING";
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            return "INFO";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+const char *toStringMessageType(VkDebugUtilsMessageTypeFlagsEXT s) {
+    if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))
+        return "General | Validation | Performance";
+    if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))
+        return "Validation | Performance";
+    if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))
+        return "General | Performance";
+    if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))
+        return "Performance";
+    if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT))
+        return "General | Validation";
+    if (s == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+        return "Validation";
+    if (s == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) return "General";
+    return "Unknown";
+}
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+              VkDebugUtilsMessageTypeFlagsEXT messageType,
+              const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+              void * /* pUserData */) {
+    auto ms = toStringMessageSeverity(messageSeverity);
+    auto mt = toStringMessageType(messageType);
+    printf("[%s: %s]\n%s\n", ms, mt, pCallbackData->pMessage);
+
+    return VK_FALSE;
+}
+
+static VkResult CreateDebugUtilsMessengerEXT(
+        VkInstance instance,
+        const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+        const VkAllocationCallbacks *pAllocator,
+        VkDebugUtilsMessengerEXT *pDebugMessenger) {
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
+            instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    } else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+static void destroyDebugUtilsMessengerEXT(
+        VkInstance instance,
+        VkDebugUtilsMessengerEXT debugMessenger,
+        const VkAllocationCallbacks *pAllocator) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
+            instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
+
+bool setupDebugMessenger(VkInstance instance) {
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    memset(&createInfo, 0, sizeof(VkDebugUtilsMessengerCreateInfoEXT));
+
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+
+    createInfo.messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+    createInfo.pfnUserCallback = debugCallback;
+
+    return CreateDebugUtilsMessengerEXT(instance,
+                                        &createInfo,
+                                        nullptr,
+                                        &debugMessenger);
+}
 
 int main(int argc, char **argv) {
     bool running;
@@ -67,6 +170,8 @@ int main(int argc, char **argv) {
         }
 
         extensionsForSDL.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+        extensionsForSDL.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
 #ifdef __APPLE__
         extensionsForSDL.push_back(VK_INST_EXT_PORTABILITY);
 #endif
@@ -87,6 +192,11 @@ int main(int argc, char **argv) {
         createInfo.enabledExtensionCount = extensionsForSDL.size();
         createInfo.ppEnabledExtensionNames = extensionsForSDL.data();
 
+        char *validationLayerName = VK_VALIDATION_LAYER;
+
+        createInfo.ppEnabledLayerNames = &validationLayerName;
+        createInfo.enabledLayerCount = 1;
+
 #ifdef __APPLE__
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
@@ -95,6 +205,10 @@ int main(int argc, char **argv) {
         if (result != VK_SUCCESS) {
             goto cleanup_SDL_window;
         }
+    }
+
+    if (!setupDebugMessenger(instance)) {
+        goto cleanup_VK_validation_layer;
     }
 
     running = true;
@@ -106,6 +220,9 @@ int main(int argc, char **argv) {
             }
         }
     }
+
+cleanup_VK_validation_layer:
+    destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
 cleanup_VK_instance:
     vkDestroyInstance(instance, nullptr);
