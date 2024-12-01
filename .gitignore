@@ -33,3 +33,5 @@
 lesson1/build
 lesson1/.idea
 lesson1/cmake-build-debug
+lesson2/.idea
+lesson2/cmake-build-debug
