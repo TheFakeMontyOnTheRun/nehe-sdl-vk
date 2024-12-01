@@ -229,12 +229,28 @@ int main(int argc, char **argv) {
         }
 
         for (int c = 0; c < deviceCount; ++c) {
-            physicalDevice = availableDevices[c];
-            goto main_loop;
+            uint32_t queueFamilyCount = 0;
+
+            vkGetPhysicalDeviceQueueFamilyProperties(availableDevices[c],
+                                                     &queueFamilyCount,
+                                                     nullptr);
+
+            VkQueueFamilyProperties queueFamilies[queueFamilyCount];
+
+            vkGetPhysicalDeviceQueueFamilyProperties(availableDevices[c],
+                                                     &queueFamilyCount,
+                                                     queueFamilies);
+
+            for (uint32_t j = 0; j < queueFamilyCount; ++j) {
+                if (queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                    physicalDevice = availableDevices[c];
+                    goto physical_device_selected;
+                }
+            }
         }
         goto cleanup_VK_validation_layer;
     }
-    main_loop:
+physical_device_selected:
     ////////////////////
     running = true;
 
