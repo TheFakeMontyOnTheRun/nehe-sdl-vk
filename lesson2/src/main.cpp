@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
     SDL_Event event;
     VkInstance instance;
     VkPhysicalDevice physicalDevice = static_cast<VkPhysicalDevice>(VK_NULL_HANDLE);
+    VkQueueFamilyProperties queueFamily;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
@@ -251,6 +252,35 @@ int main(int argc, char **argv) {
         goto cleanup_VK_validation_layer;
     }
 physical_device_selected:
+    {
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice,
+                                                 &queueFamilyCount,
+                                                 nullptr);
+
+        if (queueFamilyCount == 0) {
+            goto cleanup_VK_validation_layer;
+        }
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice,
+                                                 &queueFamilyCount,
+                                                 queueFamilies.data());
+
+        if (queueFamilies.empty()) {
+            goto cleanup_VK_validation_layer;
+        }
+
+        for (int c = 0; c < queueFamilies.size(); ++c) {
+            if (queueFamilies[c].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                queueFamily = queueFamilies[c];
+                goto queue_family_selected;
+            }
+        }
+        goto cleanup_VK_validation_layer;
+    }
+queue_family_selected:
     ////////////////////
     running = true;
 
@@ -262,13 +292,13 @@ physical_device_selected:
         }
     }
 
-cleanup_VK_validation_layer:
+    cleanup_VK_validation_layer:
     destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
-cleanup_VK_instance:
+    cleanup_VK_instance:
     vkDestroyInstance(instance, nullptr);
 
-cleanup_SDL_window:
+    cleanup_SDL_window:
     SDL_DestroyWindow(window);
 
     SDL_Quit();
