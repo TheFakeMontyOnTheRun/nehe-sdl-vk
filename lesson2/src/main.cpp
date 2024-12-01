@@ -126,6 +126,7 @@ int main(int argc, char **argv) {
     SDL_Window *window;
     SDL_Event event;
     VkInstance instance;
+    VkPhysicalDevice physicalDevice = static_cast<VkPhysicalDevice>(VK_NULL_HANDLE);
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
@@ -204,6 +205,37 @@ int main(int argc, char **argv) {
         goto cleanup_VK_validation_layer;
     }
 
+    /// new for lesson 2
+    {
+        uint32_t deviceCount = 0;
+        VkResult result;
+
+        result = vkEnumeratePhysicalDevices(instance,
+                                            &deviceCount,
+                                            nullptr);
+
+        if (result != VK_SUCCESS || deviceCount == 0) {
+            goto cleanup_VK_validation_layer;
+        }
+
+        std::vector<VkPhysicalDevice> availableDevices(deviceCount);
+
+        result = vkEnumeratePhysicalDevices(instance,
+                                            &deviceCount,
+                                            availableDevices.data());
+
+        if (result != VK_SUCCESS) {
+            goto cleanup_VK_validation_layer;
+        }
+
+        for (int c = 0; c < deviceCount; ++c) {
+            physicalDevice = availableDevices[c];
+            goto main_loop;
+        }
+        goto cleanup_VK_validation_layer;
+    }
+    main_loop:
+    ////////////////////
     running = true;
 
     while (running) {
