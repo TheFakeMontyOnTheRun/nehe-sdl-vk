@@ -126,12 +126,6 @@ int main(int argc, char **argv) {
     SDL_Window *window;
     SDL_Event event;
     VkInstance instance;
-    VkPhysicalDevice physicalDevice;
-    VkPhysicalDeviceFeatures deviceFeatures;
-    VkSwapchainKHR swapchain;
-    VkSurfaceKHR surface;
-    VkImageView imageView;
-    VkFramebuffer framebuffer;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
@@ -201,8 +195,7 @@ int main(int argc, char **argv) {
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-        VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
-        if (result != VK_SUCCESS) {
+        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
             goto cleanup_SDL_window;
         }
     }
