@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
         goto cleanup_VK_validation_layer;
     }
 
-    /// new for lesson 2
+/// new for lesson 2
     {
         uint32_t deviceCount = 0;
         VkResult result;
@@ -308,7 +308,7 @@ queue_family_selected:
             goto cleanup_VK_validation_layer;
         }
     }
-    ////////////////////
+////////////////////
     running = true;
 
     while (running) {
@@ -318,9 +318,10 @@ queue_family_selected:
             }
         }
     }
-
+/// new for lesson 2
 cleanup_VK_logical_device:
     vkDestroyDevice(logicalDevice, nullptr);
+////////////////////
 
 cleanup_VK_validation_layer:
     destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
