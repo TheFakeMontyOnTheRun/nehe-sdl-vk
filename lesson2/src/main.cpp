@@ -127,7 +127,8 @@ int main(int argc, char **argv) {
     SDL_Event event;
     VkInstance instance;
     VkPhysicalDevice physicalDevice = static_cast<VkPhysicalDevice>(VK_NULL_HANDLE);
-    VkQueueFamilyProperties queueFamily;
+    uint32_t queueFamilyIndex;
+    VkDevice logicalDevice;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
@@ -274,13 +275,39 @@ physical_device_selected:
 
         for (int c = 0; c < queueFamilies.size(); ++c) {
             if (queueFamilies[c].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                queueFamily = queueFamilies[c];
+                queueFamilyIndex = c;
                 goto queue_family_selected;
             }
         }
         goto cleanup_VK_validation_layer;
     }
 queue_family_selected:
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo;
+        memset(&queueCreateInfo, 0, sizeof(queueCreateInfo));
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
+        queueCreateInfo.queueCount = 1;
+        float queuePriority = 1.0f;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkPhysicalDeviceFeatures deviceFeatures;
+        memset(&deviceFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
+
+        VkDeviceCreateInfo createInfo;
+        memset(&createInfo, 0, sizeof(VkDeviceCreateInfo));
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        createInfo.pQueueCreateInfos = &queueCreateInfo;
+        createInfo.queueCreateInfoCount = 1;
+        createInfo.pEnabledFeatures = &deviceFeatures;
+
+        if (vkCreateDevice(physicalDevice,
+                           &createInfo,
+                           nullptr,
+                           &logicalDevice) != VK_SUCCESS) {
+            goto cleanup_VK_validation_layer;
+        }
+    }
     ////////////////////
     running = true;
 
@@ -292,13 +319,16 @@ queue_family_selected:
         }
     }
 
-    cleanup_VK_validation_layer:
+cleanup_VK_logical_device:
+    vkDestroyDevice(logicalDevice, nullptr);
+
+cleanup_VK_validation_layer:
     destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
-    cleanup_VK_instance:
+cleanup_VK_instance:
     vkDestroyInstance(instance, nullptr);
 
-    cleanup_SDL_window:
+cleanup_SDL_window:
     SDL_DestroyWindow(window);
 
     SDL_Quit();
