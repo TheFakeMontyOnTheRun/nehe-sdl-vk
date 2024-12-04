@@ -118,7 +118,7 @@ bool setupDebugMessenger(VkInstance instance) {
     return CreateDebugUtilsMessengerEXT(instance,
                                         &createInfo,
                                         nullptr,
-                                        &debugMessenger);
+                                        &debugMessenger) == VK_SUCCESS;
 }
 
 int main(int argc, char **argv) {
