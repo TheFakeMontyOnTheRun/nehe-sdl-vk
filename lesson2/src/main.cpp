@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
     VkPhysicalDevice physicalDevice = static_cast<VkPhysicalDevice>(VK_NULL_HANDLE);
     uint32_t queueFamilyIndex;
     VkDevice logicalDevice;
+    VkQueue graphicsQueue;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
@@ -314,6 +315,9 @@ queue_family_selected:
             goto cleanup_VK_validation_layer;
         }
     }
+
+    vkGetDeviceQueue(logicalDevice, queueFamilyIndex, 0, &graphicsQueue);
+
 ////////////////////
     running = true;
 
