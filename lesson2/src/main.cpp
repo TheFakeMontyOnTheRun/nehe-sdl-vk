@@ -19,6 +19,7 @@
 
 #ifdef __APPLE__
 #define VK_INST_EXT_PORTABILITY "VK_KHR_portability_enumeration"
+#define VK_INST_EXT_GET_PHYS_DEVICE "VK_KHR_get_physical_device_properties2"
 #define VK_DEV_EXT_PORTABILITY "KHR_portability_subset"
 #endif
 
@@ -171,6 +172,7 @@ int main(int argc, char **argv) {
 
 #ifdef __APPLE__
         extensionsForSDL.push_back(VK_INST_EXT_PORTABILITY);
+        extensionsForSDL.push_back(VK_INST_EXT_GET_PHYS_DEVICE);
 #endif
 
         VkApplicationInfo appInfo;
@@ -300,7 +302,11 @@ queue_family_selected:
         createInfo.pQueueCreateInfos = &queueCreateInfo;
         createInfo.queueCreateInfoCount = 1;
         createInfo.pEnabledFeatures = &deviceFeatures;
-
+#ifdef __APPLE__
+        const char *portabilityExtensionName = "VK_KHR_portability_subset";
+        createInfo.ppEnabledExtensionNames = &portabilityExtensionName;
+        createInfo.enabledExtensionCount = 1;
+#endif
         if (vkCreateDevice(physicalDevice,
                            &createInfo,
                            nullptr,
